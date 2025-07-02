@@ -3,29 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>🎧 Popkid GLE - MP3/MP4 Downloader</title>
+  <title>🎧 Popkid GLE</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <style>
-    body {
-      background: #0f172a;
-      font-family: 'Segoe UI', sans-serif;
-    }
-    .glass {
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(10px);
-    }
+    body { background: #0f172a; font-family: 'Segoe UI', sans-serif; }
+    .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); }
   </style>
 </head>
 <body class="text-white">
-
   <header class="text-center py-6">
     <h1 class="text-4xl font-bold text-blue-400">🧃 Popkid GLE</h1>
-    <p class="text-gray-300 mt-1">Paste YouTube link or type song name</p>
+    <p class="text-gray-300 mt-1">Type song title or paste YouTube link</p>
   </header>
 
   <main class="glass max-w-3xl mx-auto p-6 rounded-xl shadow-lg">
     <form id="searchForm" class="flex flex-col md:flex-row gap-4">
-      <input id="query" type="text" placeholder="🔍 e.g. Mawazo by Diamond or YouTube link" class="flex-grow p-3 rounded-md text-black" required>
+      <input id="query" type="text" placeholder="e.g. Mawazo by Diamond or YouTube link" class="flex-grow p-3 rounded-md text-black" required>
       <button type="submit" class="bg-blue-600 hover:bg-blue-800 px-6 py-3 rounded-md">Search</button>
     </form>
 
@@ -54,50 +47,27 @@
     const videoTitle = document.getElementById('videoTitle');
     const mp3Btn = document.getElementById('mp3Btn');
 
-    async function getVideoId(input) {
-      // Case 1: Direct YouTube URL
-      if (input.includes("youtube.com") || input.includes("youtu.be")) {
-        if (input.includes("v=")) return input.split("v=")[1].split("&")[0];
-        else return input.split("/").pop();
-      }
-
-      // Case 2: Search string — fetch first video
-      const searchRes = await fetch(`https://noobs-api.top/yt/search?query=${encodeURIComponent(input)}`);
-      const searchJson = await searchRes.json();
-      return searchJson.result?.videos?.[0]?.videoId;
-    }
-
     form.onsubmit = async (e) => {
       e.preventDefault();
       const input = queryInput.value.trim();
       if (!input) return;
 
       try {
-        const videoId = await getVideoId(input);
-        if (!videoId) {
-          alert('❌ Could not find any video.');
-          return;
-        }
-
-        const res = await fetch(`https://noobs-api.top/dipto/ytDl3?link=${videoId}&format=mp3`);
+        const res = await fetch(`/api/download?query=${encodeURIComponent(input)}`);
         const data = await res.json();
 
-        if (!data.downloadLink) {
-          alert('❌ No download link found.');
-          return;
-        }
+        if (!data.downloadLink) throw new Error('No download found');
 
-        videoPlayer.src = `https://www.youtube.com/embed/${videoId}`;
-        videoTitle.textContent = data.title || "🎬 Your video is ready";
+        videoPlayer.src = `https://www.youtube.com/embed/${data.videoId}`;
+        videoTitle.textContent = data.title || '🎬 Your video is ready';
         mp3Btn.href = data.downloadLink;
 
         result.classList.remove("hidden");
       } catch (err) {
         console.error(err);
-        alert("❌ Something went wrong. Try again.");
+        alert('❌ Failed to fetch song.');
       }
     };
   </script>
-
 </body>
 </html>
