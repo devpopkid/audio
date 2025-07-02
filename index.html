@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🎧 Popkid GLE - Music Downloader</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.3.2/dist/tailwind.min.css" rel="stylesheet"/>
+  <style>
+    body {
+      background: linear-gradient(to right, #0f172a, #1e293b);
+      font-family: 'Segoe UI', sans-serif;
+    }
+    .glass {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(12px);
+    }
+    .video-thumb:hover {
+      transform: scale(1.02);
+      transition: all 0.2s ease-in-out;
+    }
+  </style>
+</head>
+<body class="text-white min-h-screen flex flex-col">
+
+  <header class="text-center py-6">
+    <h1 class="text-4xl md:text-6xl font-bold text-blue-400">🧃 Popkid GLE</h1>
+    <p class="text-gray-300 mt-1">Search or Play Latest YouTube Songs</p>
+  </header>
+
+  <main class="glass max-w-6xl mx-auto p-6 rounded-2xl shadow-lg w-full">
+    <form id="searchForm" class="flex flex-col md:flex-row gap-4 mb-6">
+      <input id="query" type="text" placeholder="🔍 Search song title or paste YouTube URL..."
+        class="flex-grow p-4 rounded-lg text-black focus:outline-none shadow-inner" required>
+      <button type="submit"
+        class="bg-blue-600 hover:bg-blue-800 px-6 py-3 rounded-lg font-semibold transition-all duration-300">Search</button>
+    </form>
+
+    <div id="result" class="hidden mb-10">
+      <div class="mb-4 aspect-video overflow-hidden rounded-lg">
+        <iframe id="videoPlayer" class="w-full h-full" frameborder="0" allowfullscreen></iframe>
+      </div>
+      <div class="text-center">
+        <h2 id="videoTitle" class="text-xl md:text-2xl font-semibold mb-3 text-blue-200"></h2>
+        <div class="flex flex-wrap gap-4 justify-center">
+          <a id="mp3Btn" href="#" target="_blank"
+            class="bg-green-500 hover:bg-green-700 px-5 py-2 rounded-lg font-medium shadow">🎵 Download MP3</a>
+          <a id="mp4Btn" href="#" target="_blank"
+            class="bg-red-500 hover:bg-red-700 px-5 py-2 rounded-lg font-medium shadow">🎬 Download MP4</a>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="text-2xl font-semibold mb-4 text-white">🔥 Latest Songs</h3>
+    <div id="latestSongs" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+  </main>
+
+  <footer class="text-center text-sm text-gray-500 py-6">
+    &copy; 2025 Popkid GLE • Powered by DevPopkid 💙
+  </footer>
+
+  <script>
+    const form = document.getElementById('searchForm');
+    const queryInput = document.getElementById('query');
+    const resultBox = document.getElementById('result');
+    const videoPlayer = document.getElementById('videoPlayer');
+    const videoTitle = document.getElementById('videoTitle');
+    const mp3Btn = document.getElementById('mp3Btn');
+    const mp4Btn = document.getElementById('mp4Btn');
+    const latestSongsContainer = document.getElementById('latestSongs');
+
+    async function fetchVideo(query) {
+      const res = await fetch(`https://noobs-api.top/yt/search?query=${encodeURIComponent(query)}`);
+      const json = await res.json();
+      return json.result?.videos?.[0];
+    }
+
+    async function showVideoById(video) {
+      const videoId = video.videoId;
+      const ytUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+      videoPlayer.src = `https://www.youtube.com/embed/${videoId}`;
+      videoTitle.textContent = video.title;
+
+      mp3Btn.href = `https://noobs-api.top/dipto/ytDl3?link=${videoId}&format=mp3`;
+      mp4Btn.href = `https://jawad-tech.vercel.app/download/ytmp3?url=${encodeURIComponent(ytUrl)}`;
+      resultBox.classList.remove('hidden');
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const query = queryInput.value.trim();
+      if (!query) return;
+
+      const video = await fetchVideo(query);
+      if (!video) {
+        alert('❌ No video found.');
+        return;
+      }
+      showVideoById(video);
+    };
+
+    async function loadLatestSongs() {
+      try {
+        const trendingKeywords = ["latest music", "top hits", "afrobeats 2025", "viral songs", "kenya music", "bongo hits"];
+        const picked = trendingKeywords[Math.floor(Math.random() * trendingKeywords.length)];
+        const res = await fetch(`https://noobs-api.top/yt/search?query=${encodeURIComponent(picked)}`);
+        const json = await res.json();
+        const videos = json.result?.videos?.slice(0, 8);
+
+        latestSongsContainer.innerHTML = '';
+
+        videos.forEach(video => {
+          const card = document.createElement('div');
+          card.className = 'bg-white bg-opacity-5 rounded-lg overflow-hidden cursor-pointer video-thumb';
+          card.innerHTML = `
+            <img src="${video.thumbnail}" class="w-full h-36 object-cover" alt="${video.title}" />
+            <div class="p-2">
+              <p class="text-sm font-semibold text-white line-clamp-2">${video.title}</p>
+            </div>
+          `;
+          card.onclick = () => showVideoById(video);
+          latestSongsContainer.appendChild(card);
+        });
+      } catch (err) {
+        console.error('Failed to load trending:', err);
+      }
+    }
+
+    // Load trending videos on page load
+    loadLatestSongs();
+  </script>
+</body>
+</html>
