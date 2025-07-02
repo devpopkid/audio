@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>🎧 Popkid GLE - Audio/Video Downloader</title>
+  <title>🎧 Popkid GLE - MP3/MP4 Downloader</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <style>
     body {
@@ -12,7 +12,7 @@
     }
     .glass {
       background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(12px);
+      backdrop-filter: blur(10px);
     }
   </style>
 </head>
@@ -20,12 +20,12 @@
 
   <header class="text-center py-6">
     <h1 class="text-4xl font-bold text-blue-400">🧃 Popkid GLE</h1>
-    <p class="text-gray-300 mt-1">Paste YouTube URL or Title to Play & Download</p>
+    <p class="text-gray-300 mt-1">Paste YouTube link or type song name</p>
   </header>
 
-  <main class="glass max-w-3xl mx-auto p-6 rounded-2xl shadow-lg">
+  <main class="glass max-w-3xl mx-auto p-6 rounded-xl shadow-lg">
     <form id="searchForm" class="flex flex-col md:flex-row gap-4">
-      <input id="query" type="text" placeholder="🎯 Paste YouTube URL or title..." class="flex-grow p-3 rounded-md text-black" required>
+      <input id="query" type="text" placeholder="🔍 e.g. Mawazo by Diamond or YouTube link" class="flex-grow p-3 rounded-md text-black" required>
       <button type="submit" class="bg-blue-600 hover:bg-blue-800 px-6 py-3 rounded-md">Search</button>
     </form>
 
@@ -36,62 +36,62 @@
       <div class="text-center">
         <h2 id="videoTitle" class="text-xl font-semibold mb-2 text-blue-300"></h2>
         <div class="flex flex-wrap gap-4 justify-center mt-4">
-          <a id="mp3Btn" href="#" target="_blank" class="bg-green-500 hover:bg-green-700 px-4 py-2 rounded">🎵 Download MP3</a>
-          <a id="mp4Btn" href="#" target="_blank" class="bg-red-500 hover:bg-red-700 px-4 py-2 rounded">🎬 Download MP4</a>
+          <a id="mp3Btn" href="#" target="_blank" download class="bg-green-500 hover:bg-green-700 px-4 py-2 rounded">🎵 Download MP3</a>
         </div>
       </div>
     </div>
   </main>
 
   <footer class="text-center text-sm text-gray-500 mt-12 mb-6">
-    &copy; 2025 Popkid GLE — Built by DevPopkid 💙
+    &copy; 2025 Popkid GLE — Powered by DevPopkid 💙
   </footer>
 
   <script>
     const form = document.getElementById('searchForm');
     const queryInput = document.getElementById('query');
-    const resultBox = document.getElementById('result');
+    const result = document.getElementById('result');
     const videoPlayer = document.getElementById('videoPlayer');
     const videoTitle = document.getElementById('videoTitle');
     const mp3Btn = document.getElementById('mp3Btn');
-    const mp4Btn = document.getElementById('mp4Btn');
 
-    async function getVideoInfo(query) {
-      // If URL, use it directly. Otherwise, do a quick search
-      if (query.includes("youtube.com") || query.includes("youtu.be")) {
-        return query;
-      } else {
-        const res = await fetch(`https://noobs-api.top/yt/search?query=${encodeURIComponent(query)}`);
-        const json = await res.json();
-        const vid = json.result?.videos?.[0];
-        return vid ? `https://www.youtube.com/watch?v=${vid.videoId}` : null;
+    async function getVideoId(input) {
+      // Case 1: Direct YouTube URL
+      if (input.includes("youtube.com") || input.includes("youtu.be")) {
+        if (input.includes("v=")) return input.split("v=")[1].split("&")[0];
+        else return input.split("/").pop();
       }
+
+      // Case 2: Search string — fetch first video
+      const searchRes = await fetch(`https://noobs-api.top/yt/search?query=${encodeURIComponent(input)}`);
+      const searchJson = await searchRes.json();
+      return searchJson.result?.videos?.[0]?.videoId;
     }
 
     form.onsubmit = async (e) => {
       e.preventDefault();
-      const rawQuery = queryInput.value.trim();
-      if (!rawQuery) return;
+      const input = queryInput.value.trim();
+      if (!input) return;
 
       try {
-        const ytUrl = await getVideoInfo(rawQuery);
-        if (!ytUrl) {
-          alert('❌ No video found.');
+        const videoId = await getVideoId(input);
+        if (!videoId) {
+          alert('❌ Could not find any video.');
           return;
         }
 
-        const videoId = ytUrl.split("v=")[1]?.split("&")[0] || ytUrl.split("/").pop();
+        const res = await fetch(`https://noobs-api.top/dipto/ytDl3?link=${videoId}&format=mp3`);
+        const data = await res.json();
 
-        // Set iframe player
+        if (!data.downloadLink) {
+          alert('❌ No download link found.');
+          return;
+        }
+
         videoPlayer.src = `https://www.youtube.com/embed/${videoId}`;
-        videoTitle.textContent = "🎬 Your video is ready";
+        videoTitle.textContent = data.title || "🎬 Your video is ready";
+        mp3Btn.href = data.downloadLink;
 
-        // Set download links
-        mp3Btn.href = `https://noobs-api.top/dipto/ytDl3?link=${videoId}&format=mp3`;
-        mp4Btn.href = `https://jawad-tech.vercel.app/download/ytmp3?url=${encodeURIComponent(ytUrl)}`;
-
-        resultBox.classList.remove("hidden");
-
+        result.classList.remove("hidden");
       } catch (err) {
         console.error(err);
         alert("❌ Something went wrong. Try again.");
