@@ -68,13 +68,13 @@
     const mp4Btn = document.getElementById('mp4Btn');
     const latestSongsContainer = document.getElementById('latestSongs');
 
-    async function fetchVideo(query) {
+    async function fetchVideos(query) {
       const res = await fetch(`https://noobs-api.top/yt/search?query=${encodeURIComponent(query)}`);
       const json = await res.json();
-      return json.result?.videos?.[0];
+      return json.result?.videos || [];
     }
 
-    async function showVideoById(video) {
+    async function handleVideo(video) {
       const videoId = video.videoId;
       const ytUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
@@ -93,25 +93,18 @@
       const query = queryInput.value.trim();
       if (!query) return;
 
-      const video = await fetchVideo(query);
-      if (!video) {
+      const videos = await fetchVideos(query);
+      if (!videos.length) {
         alert('❌ No video found.');
         return;
       }
-      showVideoById(video);
+      handleVideo(videos[0]);
     };
 
     async function loadLatestSongs() {
       try {
-        const trendingKeywords = ["latest music", "top hits", "afrobeats 2025", "viral songs", "kenya music", "bongo hits"];
-        const picked = trendingKeywords[Math.floor(Math.random() * trendingKeywords.length)];
-        const res = await fetch(`https://noobs-api.top/yt/search?query=${encodeURIComponent(picked)}`);
-        const json = await res.json();
-        const videos = json.result?.videos?.slice(0, 8);
-
-        latestSongsContainer.innerHTML = '';
-
-        videos.forEach(video => {
+        const trending = await fetchVideos("latest music 2025");
+        trending.slice(0, 8).forEach(video => {
           const card = document.createElement('div');
           card.className = 'bg-white bg-opacity-5 rounded-lg overflow-hidden cursor-pointer video-thumb';
           card.innerHTML = `
@@ -120,15 +113,15 @@
               <p class="text-sm font-semibold text-white line-clamp-2">${video.title}</p>
             </div>
           `;
-          card.onclick = () => showVideoById(video);
+          card.onclick = () => handleVideo(video);
           latestSongsContainer.appendChild(card);
         });
       } catch (err) {
-        console.error('Failed to load trending:', err);
+        console.error('Failed to load trending videos:', err);
       }
     }
 
-    // Load trending videos on page load
+    // Load trending music on first load
     loadLatestSongs();
   </script>
 </body>
